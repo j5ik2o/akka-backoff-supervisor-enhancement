@@ -2,6 +2,7 @@ package com.github.j5ik2o.akka.backoff.enhancement
 
 import akka.actor.SupervisorStrategy._
 import akka.actor.{ OneForOneStrategy, _ }
+import com.github.j5ik2o.akka.backoff.enhancement.BackoffSupervisor.{ ChildStarted, ChildStopped }
 
 import scala.concurrent.duration._
 
@@ -12,6 +13,7 @@ class BackoffOnRestartSupervisorImpl(
   val maxBackoff: FiniteDuration,
   val reset: BackoffReset,
   val randomFactor: Double,
+  val eventSubscriber: Option[ActorRef],
   val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit,
   val onStopChildHandler: ActorRef => Unit,
   val strategy: OneForOneStrategy
@@ -27,7 +29,7 @@ class BackoffOnRestartSupervisorImpl(
       strategy.decider.applyOrElse(ex, (_: Any) ⇒ defaultDirective) match {
         case Restart ⇒
           val childRef = sender()
-          become(waitChildTerminatedBeforeBackoff(childRef, ex) orElse handleBackoff)
+          become(backingOff(childRef, ex))
           Stop
         case other ⇒ other
       }
@@ -37,9 +39,17 @@ class BackoffOnRestartSupervisorImpl(
 
   override def handleCommand: Receive = PartialFunction.empty
 
-  override def onStartChild(ex: Option[Throwable]): Unit = onStartChildHandler(self, ex)
+  override def onStartChild(ex: Option[Throwable]): Unit = {
+    eventSubscriber.fold(onStartChildHandler(self, ex)) { subscriber =>
+      subscriber ! ChildStarted(ex)
+    }
+  }
 
-  override def onStopChild(): Unit = onStopChildHandler(self)
+  override def onStopChild(): Unit = {
+    eventSubscriber.fold(onStopChildHandler(self)) { subscriber =>
+      subscriber ! ChildStopped
+    }
+  }
 }
 
 trait BackoffOnRestartSupervisor
@@ -51,12 +61,6 @@ trait BackoffOnRestartSupervisor
 
   import BackoffSupervisor._
   import context._
-
-  val defaultDecider: SupervisorStrategy.Decider = {
-    case ex ⇒
-      become(backingOff(sender(), ex))
-      Stop
-  }
 
   protected def waitChildTerminatedBeforeBackoff(childRef: ActorRef, ex: Throwable): Receive = {
     case Terminated(`childRef`) ⇒
@@ -75,10 +79,6 @@ trait BackoffOnRestartSupervisor
       log.debug(s"Terminating, because child [$child] terminated itself")
       stop(self)
   }
-
-  def onStartChild(ex: Option[Throwable]): Unit
-
-  def onStopChild(): Unit
 
   def handleCommand: Receive
 

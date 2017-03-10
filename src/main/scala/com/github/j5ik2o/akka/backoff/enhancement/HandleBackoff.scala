@@ -27,9 +27,9 @@ trait HandleBackoff extends ActorLogging {
       onStartChild(ex)
     }
 
-  def onStartChild(ex: Option[Throwable]): Unit
+  def onStartChild(ex: Option[Throwable]): Unit = {}
 
-  def onStopChild(): Unit
+  def onStopChild(): Unit = {}
 
   def handleBackoff: Receive = {
     case StartChild(ex) ⇒
@@ -39,7 +39,6 @@ trait HandleBackoff extends ActorLogging {
           val _ = context.system.scheduler.scheduleOnce(resetBackoff, self, ResetRestartCount(restartCount))
         case _ ⇒ // ignore
       }
-    // subscriber ! ChildStarted()
     case Reset ⇒
       reset match {
         case ManualReset ⇒ restartCount = 0

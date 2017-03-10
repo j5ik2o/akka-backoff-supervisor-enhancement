@@ -163,6 +163,18 @@ object Backoff {
  * }}}
  */
 trait BackoffOptions {
+  val backoffType: BackoffType
+  val childProps: Props
+  val childName: String
+  val minBackoff: FiniteDuration
+  val maxBackoff: FiniteDuration
+  val randomFactor: Double
+  val reset: Option[BackoffReset]
+  val eventSubscriber: Option[ActorRef]
+  val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit
+  val onStopChildHandler: ActorRef => Unit
+  val supervisorStrategy: OneForOneStrategy
+
   /**
    * Returns a new BackoffOptions with automatic back-off reset.
    * The back-off algorithm is reset if the child does not crash within the specified `resetBackoff`.
@@ -192,6 +204,8 @@ trait BackoffOptions {
    */
   def withDefaultStoppingStrategy: BackoffOptions
 
+  def withEventSubscriber(subscriber: Option[ActorRef]): BackoffOptions
+
   def withOnStartChildHandler(onStartChildHandler: (ActorRef, Option[Throwable]) => Unit): BackoffOptions
 
   def withOnStopChildHandler(onStopChildHandler: ActorRef => Unit): BackoffOptions
@@ -202,6 +216,38 @@ trait BackoffOptions {
   private[backoff] def props: Props
 }
 
+object BackoffOptions {
+
+  def apply(
+    backoffType: BackoffType = RestartImpliesFailure,
+    childProps: Props,
+    childName: String,
+    minBackoff: FiniteDuration,
+    maxBackoff: FiniteDuration,
+    randomFactor: Double,
+    reset: Option[BackoffReset] = None,
+    eventSubscriber: Option[ActorRef] = None,
+    onStartChildHandler: (ActorRef, Option[Throwable]) => Unit = (_, _) => (),
+    onStopChildHandler: ActorRef => Unit = _ => (),
+    supervisorStrategy: OneForOneStrategy
+  ): BackoffOptions = {
+    BackoffOptionsImpl(
+      backoffType: BackoffType,
+      childProps,
+      childName,
+      minBackoff,
+      maxBackoff,
+      randomFactor,
+      reset,
+      eventSubscriber,
+      onStartChildHandler,
+      onStopChildHandler,
+      supervisorStrategy
+    )
+  }
+
+}
+
 private final case class BackoffOptionsImpl(
     backoffType: BackoffType = RestartImpliesFailure,
     childProps: Props,
@@ -210,6 +256,7 @@ private final case class BackoffOptionsImpl(
     maxBackoff: FiniteDuration,
     randomFactor: Double,
     reset: Option[BackoffReset] = None,
+    eventSubscriber: Option[ActorRef] = None,
     onStartChildHandler: (ActorRef, Option[Throwable]) => Unit = (_, _) => (),
     onStopChildHandler: ActorRef => Unit = _ => (),
     supervisorStrategy: OneForOneStrategy = OneForOneStrategy()(SupervisorStrategy.defaultStrategy.decider)
@@ -224,6 +271,9 @@ private final case class BackoffOptionsImpl(
   override def withSupervisorStrategy(supervisorStrategy: OneForOneStrategy): BackoffOptionsImpl = copy(supervisorStrategy = supervisorStrategy)
 
   override def withDefaultStoppingStrategy: BackoffOptionsImpl = copy(supervisorStrategy = OneForOneStrategy()(SupervisorStrategy.stoppingStrategy.decider))
+
+  override def withEventSubscriber(subscriber: Option[ActorRef]): BackoffOptions =
+    copy(eventSubscriber = subscriber)
 
   override def withOnStartChildHandler(onStartChildHandler: (ActorRef, Option[Throwable]) => Unit): BackoffOptions =
     copy(onStartChildHandler = onStartChildHandler)
@@ -244,20 +294,24 @@ private final case class BackoffOptionsImpl(
     backoffType match {
       case RestartImpliesFailure ⇒
         Props(new BackoffOnRestartSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor,
-          onStartChildHandler, onStopChildHandler, supervisorStrategy))
+          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy))
       case StopImpliesFailure ⇒
         Props(new BackoffSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor,
-          onStartChildHandler, onStopChildHandler, supervisorStrategy))
+          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy))
+      case CustomImpliesFailure =>
+        throw new IllegalArgumentException("The backoffType is a wrong parameter")
     }
   }
 
 }
 
-private sealed trait BackoffType
+sealed trait BackoffType
 
-private final case object StopImpliesFailure extends BackoffType
+final case object StopImpliesFailure extends BackoffType
 
-private final case object RestartImpliesFailure extends BackoffType
+final case object RestartImpliesFailure extends BackoffType
+
+final case object CustomImpliesFailure extends BackoffType
 
 sealed trait BackoffReset
 

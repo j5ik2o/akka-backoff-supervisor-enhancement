@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 import akka.actor.SupervisorStrategy.{ Directive, Escalate }
 import akka.actor.{ Actor, ActorRef, DeadLetterSuppression, OneForOneStrategy, Props, SupervisorStrategy, Terminated }
+import com.github.j5ik2o.akka.backoff.enhancement.BackoffSupervisor.{ ChildStarted, ChildStopped }
 
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 
@@ -107,6 +108,10 @@ object BackoffSupervisor {
    */
   final case object Reset
 
+  final case class ChildStarted(ex: Option[Throwable]) extends DeadLetterSuppression
+
+  final case object ChildStopped extends DeadLetterSuppression
+
   /**
    * Java API: Send this message to the [[BackoffSupervisor]] and it will reset the back-off.
    * This should be used in conjunction with `withManualReset` in [[BackoffOptions]].
@@ -137,7 +142,7 @@ object BackoffSupervisor {
    *
    * Calculates an exponential back off delay.
    */
-  def calculateDelay(
+  private[enhancement] def calculateDelay(
     restartCount: Int,
     minBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
@@ -161,6 +166,7 @@ class BackoffSupervisorImpl(
     val maxBackoff: FiniteDuration,
     val reset: BackoffReset,
     val randomFactor: Double,
+    val eventSubscriber: Option[ActorRef],
     val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit,
     val onStopChildHandler: ActorRef => Unit,
     strategy: SupervisorStrategy
@@ -175,7 +181,8 @@ class BackoffSupervisorImpl(
     randomFactor: Double,
     supervisorStrategy: SupervisorStrategy
   ) =
-    this(childProps, childName, minBackoff, maxBackoff, AutoReset(minBackoff), randomFactor, (_, _) => (), _ => (), supervisorStrategy)
+    this(childProps, childName, minBackoff, maxBackoff, AutoReset(minBackoff), randomFactor,
+      None, (_, _) => (), _ => (), supervisorStrategy)
 
   // for binary compatibility with 2.4.0
   def this(
@@ -188,7 +195,7 @@ class BackoffSupervisorImpl(
     this(childProps, childName, minBackoff, maxBackoff, randomFactor, SupervisorStrategy.defaultStrategy)
 
   // to keep binary compatibility with 2.4.1
-  override val supervisorStrategy = strategy match {
+  override val supervisorStrategy: SupervisorStrategy = strategy match {
     case oneForOne: OneForOneStrategy ⇒
       OneForOneStrategy(oneForOne.maxNrOfRetries, oneForOne.withinTimeRange, oneForOne.loggingEnabled) {
         case ex ⇒
@@ -203,9 +210,18 @@ class BackoffSupervisorImpl(
 
   override def handleCommand: Receive = PartialFunction.empty
 
-  override def onStartChild(ex: Option[Throwable]): Unit = onStartChildHandler(self, ex)
+  override def onStartChild(ex: Option[Throwable]): Unit = {
+    eventSubscriber.fold(onStartChildHandler(self, ex)) { subscriber =>
+      subscriber ! ChildStarted(ex)
+    }
+  }
 
-  override def onStopChild(): Unit = onStopChildHandler(self)
+  override def onStopChild(): Unit = {
+    eventSubscriber.fold(onStopChildHandler(self)) { subscriber =>
+      subscriber ! ChildStopped
+    }
+  }
+
 }
 
 /**
