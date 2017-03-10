@@ -12,6 +12,8 @@ class BackoffOnRestartSupervisorImpl(
   val maxBackoff: FiniteDuration,
   val reset: BackoffReset,
   val randomFactor: Double,
+  val onStartChildHandler: Option[Throwable] => Unit,
+  val onStopChildHandler: () => Unit,
   val strategy: OneForOneStrategy
 )
     extends BackoffOnRestartSupervisor {
@@ -35,6 +37,9 @@ class BackoffOnRestartSupervisorImpl(
 
   override def handleCommand: Receive = PartialFunction.empty
 
+  override def onStartChild(ex: Option[Throwable]): Unit = onStartChildHandler(ex)
+
+  override def onStopChild(): Unit = onStopChildHandler()
 }
 
 trait BackoffOnRestartSupervisor
@@ -71,9 +76,9 @@ trait BackoffOnRestartSupervisor
       stop(self)
   }
 
-  def onStartChild(ex: Option[Throwable]): Unit = {}
+  def onStartChild(ex: Option[Throwable]): Unit
 
-  def onStopChild(): Unit = {}
+  def onStopChild(): Unit
 
   def handleCommand: Receive
 

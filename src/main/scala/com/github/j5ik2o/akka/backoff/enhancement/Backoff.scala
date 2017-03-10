@@ -72,9 +72,11 @@ object Backoff {
     childName: String,
     minBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
-    randomFactor: Double
+    randomFactor: Double,
+    onStartChildHandler: Option[Throwable] => Unit = _ => (),
+    onStopChildHandler: () => Unit = () => ()
   ): BackoffOptions =
-    BackoffOptionsImpl(RestartImpliesFailure, childProps, childName, minBackoff, maxBackoff, randomFactor)
+    BackoffOptionsImpl(RestartImpliesFailure, childProps, childName, minBackoff, maxBackoff, randomFactor, onStartChildHandler = onStartChildHandler, onStopChildHandler = onStopChildHandler)
 
   /**
    * Back-off options for creating a back-off supervisor actor that expects a child actor to stop on failure.
@@ -134,9 +136,11 @@ object Backoff {
     childName: String,
     minBackoff: FiniteDuration,
     maxBackoff: FiniteDuration,
-    randomFactor: Double
+    randomFactor: Double,
+    onStartChildHandler: Option[Throwable] => Unit = _ => (),
+    onStopChildHandler: () => Unit = () => ()
   ): BackoffOptions =
-    BackoffOptionsImpl(StopImpliesFailure, childProps, childName, minBackoff, maxBackoff, randomFactor)
+    BackoffOptionsImpl(StopImpliesFailure, childProps, childName, minBackoff, maxBackoff, randomFactor, onStartChildHandler = onStartChildHandler, onStopChildHandler = onStopChildHandler)
 }
 
 /**
@@ -192,10 +196,12 @@ private final case class BackoffOptionsImpl(
     maxBackoff: FiniteDuration,
     randomFactor: Double,
     reset: Option[BackoffReset] = None,
+    onStartChildHandler: Option[Throwable] => Unit,
+    onStopChildHandler: () => Unit,
     supervisorStrategy: OneForOneStrategy = OneForOneStrategy()(SupervisorStrategy.defaultStrategy.decider)
 ) extends BackoffOptions {
 
-  val backoffReset = reset.getOrElse(AutoReset(minBackoff))
+  val backoffReset: BackoffReset = reset.getOrElse(AutoReset(minBackoff))
 
   def withAutoReset(resetBackoff: FiniteDuration): BackoffOptionsImpl = copy(reset = Some(AutoReset(resetBackoff)))
 
@@ -217,7 +223,7 @@ private final case class BackoffOptionsImpl(
 
     backoffType match {
       case RestartImpliesFailure ⇒
-        Props(new BackoffOnRestartSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor, supervisorStrategy))
+        Props(new BackoffOnRestartSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor, onStartChildHandler, onStopChildHandler, supervisorStrategy))
       case StopImpliesFailure ⇒
         Props(new BackoffSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor, supervisorStrategy))
     }
