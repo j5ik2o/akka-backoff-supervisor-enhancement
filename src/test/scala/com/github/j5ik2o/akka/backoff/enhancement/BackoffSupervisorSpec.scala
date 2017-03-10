@@ -2,7 +2,7 @@ package com.github.j5ik2o.akka.backoff.enhancement
 
 import akka.actor.{SupervisorStrategy, _}
 import akka.testkit._
-import BackoffSupervisor.RestartCount
+import com.github.j5ik2o.akka.backoff.enhancement.BackoffSupervisor.RestartCount
 import org.scalatest.FunSpecLike
 
 import scala.concurrent.duration._
@@ -20,7 +20,7 @@ object BackoffSupervisorSpec {
   class Child(probe: ActorRef) extends Actor {
     def receive: PartialFunction[Any, Unit] = {
       case "boom" ⇒ throw new TestException
-      case msg    ⇒ probe ! msg
+      case msg ⇒ probe ! msg
     }
   }
 
@@ -37,15 +37,21 @@ object BackoffSupervisorSpec {
         context.parent ! BackoffSupervisor.Reset
     }
   }
+
 }
 
 class BackoffSupervisorSpec
   extends TestKit(ActorSystem("BackoffSupervisorSpec"))
-  with FunSpecLike with ImplicitSender {
+    with FunSpecLike with ImplicitSender {
+
   import BackoffSupervisorSpec._
 
-  def onStopOptions(props: Props = Child.props(testActor)): BackoffOptions = Backoff.onStop(props, "c1", 100.millis, 3.seconds, 0.2)
-  def onFailureOptions(props: Props = Child.props(testActor)): BackoffOptions = Backoff.onFailure(props, "c1", 100.millis, 3.seconds, 0.2)
+  def onStopOptions(props: Props = Child.props(testActor)): BackoffOptions =
+    Backoff.onStop(props, "c1", 100.millis, 3.seconds, 0.2).withOnStartChildHandler{ ex => system.log.error(ex.get, "")}
+
+  def onFailureOptions(props: Props = Child.props(testActor)): BackoffOptions =
+    Backoff.onFailure(props, "c1", 100.millis, 3.seconds, 0.2).withOnStartChildHandler(_.foreach(_.printStackTrace()))
+
   def create(options: BackoffOptions): ActorRef = system.actorOf(BackoffSupervisor.props(options))
 
   describe("BackoffSupervisor") {
@@ -68,6 +74,7 @@ class BackoffSupervisorSpec
         supervisor ! "hello"
         expectMsg("hello")
       }
+
       assertForward(create(onStopOptions()))
       assertForward(create(onFailureOptions()))
     }
@@ -85,6 +92,7 @@ class BackoffSupervisorSpec
           assert(expectMsgType[BackoffSupervisor.CurrentChild].ref.get !== c1)
         }
       }
+
       filterException[TestException] {
         val stoppingStrategy = OneForOneStrategy() {
           case _: TestException ⇒ SupervisorStrategy.Stop
