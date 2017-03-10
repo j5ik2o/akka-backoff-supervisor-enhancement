@@ -47,10 +47,16 @@ class BackoffSupervisorSpec
   import BackoffSupervisorSpec._
 
   def onStopOptions(props: Props = Child.props(testActor)): BackoffOptions =
-    Backoff.onStop(props, "c1", 100.millis, 3.seconds, 0.2).withOnStartChildHandler{ ex => system.log.error(ex.get, "")}
+    Backoff.onStop(props, "c1", 100.millis, 3.seconds, 0.2)
+      .withOnStartChildHandler { case (actorRef, exOpt) =>
+        system.log.info(s"on start child: $actorRef, $exOpt")
+      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
 
   def onFailureOptions(props: Props = Child.props(testActor)): BackoffOptions =
-    Backoff.onFailure(props, "c1", 100.millis, 3.seconds, 0.2).withOnStartChildHandler(_.foreach(_.printStackTrace()))
+    Backoff.onFailure(props, "c1", 100.millis, 3.seconds, 0.2)
+      .withOnStartChildHandler { case (actorRef, exOpt) =>
+        system.log.info(s"on start child: $actorRef, $exOpt")
+      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
 
   def create(options: BackoffOptions): ActorRef = system.actorOf(BackoffSupervisor.props(options))
 
