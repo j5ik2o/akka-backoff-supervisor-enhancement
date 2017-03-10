@@ -161,6 +161,8 @@ class BackoffSupervisorImpl(
     val maxBackoff: FiniteDuration,
     val reset: BackoffReset,
     val randomFactor: Double,
+    val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit,
+    val onStopChildHandler: ActorRef => Unit,
     strategy: SupervisorStrategy
 ) extends BackoffSupervisor {
 
@@ -173,7 +175,7 @@ class BackoffSupervisorImpl(
     randomFactor: Double,
     supervisorStrategy: SupervisorStrategy
   ) =
-    this(childProps, childName, minBackoff, maxBackoff, AutoReset(minBackoff), randomFactor, supervisorStrategy)
+    this(childProps, childName, minBackoff, maxBackoff, AutoReset(minBackoff), randomFactor, (_, _) => (), _ => (), supervisorStrategy)
 
   // for binary compatibility with 2.4.0
   def this(
@@ -200,6 +202,10 @@ class BackoffSupervisorImpl(
   override def handleBackoff: Receive = super.handleBackoff orElse proxy
 
   override def handleCommand: Receive = PartialFunction.empty
+
+  override def onStartChild(ex: Option[Throwable]): Unit = onStartChildHandler(self, ex)
+
+  override def onStopChild(): Unit = onStopChildHandler(self)
 }
 
 /**
@@ -226,10 +232,6 @@ trait BackoffSupervisor
       context.system.scheduler.scheduleOnce(restartDelay, self, StartChild())
       restartCount += 1
   }
-
-  def onStartChild(ex: Option[Throwable]): Unit = {}
-
-  def onStopChild(): Unit = {}
 
   def handleCommand: Receive
 
