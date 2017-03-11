@@ -218,7 +218,7 @@ trait BackoffOptions {
 
 object BackoffOptions {
 
-  def apply(
+  def custom(
     backoffType: BackoffType = RestartImpliesFailure,
     childProps: Props,
     childName: String,
@@ -226,9 +226,6 @@ object BackoffOptions {
     maxBackoff: FiniteDuration,
     randomFactor: Double,
     reset: Option[BackoffReset] = None,
-    eventSubscriber: Option[ActorRef] = None,
-    onStartChildHandler: (ActorRef, Option[Throwable]) => Unit = (_, _) => (),
-    onStopChildHandler: ActorRef => Unit = _ => (),
     supervisorStrategy: OneForOneStrategy
   ): BackoffOptions = {
     BackoffOptionsImpl(
@@ -239,9 +236,9 @@ object BackoffOptions {
       maxBackoff,
       randomFactor,
       reset,
-      eventSubscriber,
-      onStartChildHandler,
-      onStopChildHandler,
+      None,
+      (_, _) => (),
+      _ => (),
       supervisorStrategy
     )
   }
