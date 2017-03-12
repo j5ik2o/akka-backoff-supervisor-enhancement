@@ -1,6 +1,7 @@
 # akka-backoff-supervisor-enhancement
 
 This product is enhancement library to BackOffSupervisor of Akka.
+I'm going to propose this enhancement method to akka team after this experiment.
 
 
 ## Usage
