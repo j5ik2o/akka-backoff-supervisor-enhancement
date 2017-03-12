@@ -54,32 +54,14 @@ val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOp
 The Custom BackOffSupervisor with backoff is supported by `BackoffOnRestartSupervisor` or `BackoffSupervisor` if you want to use the `Actor`. This BackOffSupervisor retry to send the message by self.
 
 ```scala
-case class ChildException(errorMessage: Any)
-  extends Exception()
-
-object ChildActor {
-
-  def props = Props[ChildActor]
-
-}
-
-class ChildActor extends Actor {
-
-  override def receive: Receive = {
-    case msg =>
-      throw ChildException(msg)
-  }
-
-}
-
-object Supervisor {
+object CustomBackOffSupervisor {
 
   def props(backoffOptions: BackoffOptions): Props =
     Props(new Supervisor(backoffOptions))
 
 }
 
-class Supervisor(backoffOptions: BackoffOptions)
+class CustomBackOffSupervisor(backoffOptions: BackoffOptions)
   extends BackoffOnRestartSupervisor {
 
   override val minBackoff = backoffOptions.minBackoff
@@ -104,5 +86,5 @@ class Supervisor(backoffOptions: BackoffOptions)
 }
 
 val backOffOptions = Backoff.custom(childProps, "c1", 100.millis, 3.seconds, 0.2)
-val backOffSupervisor = system.actorOf(Supervisor.props(backOffOptions))
+val backOffSupervisor = system.actorOf(CustomBackOffSupervisor.props(backOffOptions))
 ```
