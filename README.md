@@ -28,7 +28,11 @@ val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOp
 The `ChildStarted`/`ChildStopped` message is sent by `BackOffSupervisor` when the child actor is started/stopped.
 
 ```scala
-class EventListener extends Actor with ActorLogging {
+object EventSubscriber {
+  def props: Props = Props[EventSubscriber]
+}
+
+class EventSubscriber extends Actor with ActorLogging {
   override def receive: Receive = {
     case ChildStarted(Some(ChildException(msg))) =>
       log.info(s"child actor was started: $ex")
@@ -38,13 +42,14 @@ class EventListener extends Actor with ActorLogging {
   }
 }
 
+val eventListener = system.actorRef(EventSubscriber.props)
 val childProps = Props(classOf[EchoActor])
 val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
   .withEventSubscriber(Some(eventListener))
 val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOptions))
 ```
 
-### How to make Custom Supervisor with backoff
+### How to make Custom BackOffSupervisor implementation
 
 The Custom BackOffSupervisor with backoff is supported by `BackoffOnRestartSupervisor` or `BackoffSupervisor` if you want to use the `Actor`. This BackOffSupervisor retry to send the message by self.
 
