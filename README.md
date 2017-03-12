@@ -12,7 +12,7 @@ The handler that registered by `withOnStartChildHandler`/`withOnStopChildHandler
 
 
 ```scala
-val childProps = Props(classOf[EchoActor])
+val childProps = Props(classOf[ChildActor])
 val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
     .withOnStartChildHandler { case (supervisorRef, exOpt) =>
         system.log.info(s"on start child: $supervisorRef, $exOpt")
@@ -42,10 +42,10 @@ class EventSubscriber extends Actor with ActorLogging {
   }
 }
 
-val eventListener = system.actorRef(EventSubscriber.props)
-val childProps = Props(classOf[EchoActor])
+val eventSubscriber = system.actorRef(EventSubscriber.props)
+val childProps = Props(classOf[ChildActor])
 val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
-  .withEventSubscriber(Some(eventListener))
+  .withEventSubscriber(Some(eventSubscriber))
 val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOptions))
 ```
 
@@ -85,6 +85,7 @@ class CustomBackOffSupervisor(backoffOptions: BackoffOptions)
 
 }
 
+val childProps = Props(classOf[ChildActor])
 val backOffOptions = Backoff.custom(childProps, "c1", 100.millis, 3.seconds, 0.2)
 val backOffSupervisor = system.actorOf(CustomBackOffSupervisor.props(backOffOptions))
 ```
