@@ -6,6 +6,23 @@ I'm going to propose this enhancement method to akka team after this experiment.
 
 ## Usage
 
+### How to register `onStartChildHandler`/`onStopChildHandler`
+
+The handler that registered by `withOnStartChildHandler`/`withOnStopChildHandler` is called by `BackOffSupervisor` when the child actor is started/stopped.
+
+
+```scala
+val childProps = Props(classOf[EchoActor])
+val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
+    .withOnStartChildHandler { case (supervisorRef, exOpt) =>
+        system.log.info(s"on start child: $supervisorRef, $exOpt")
+        exOpt.foreach(supervisorRef ! _) // retry to send a message
+}.withOnStopChildHandler { supervisorRef => 
+  system.log.info(s"on stop child: $supervisorRef")
+}
+val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOptions))
+```
+
 ### How to send `ChildStarted`/`ChildStopped` message to EventSubscriber
 
 The `ChildStarted`/`ChildStopped` message is sent by `BackOffSupervisor` when the child actor is started/stopped.
@@ -24,23 +41,6 @@ class EventListener extends Actor with ActorLogging {
 val childProps = Props(classOf[EchoActor])
 val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
   .withEventSubscriber(Some(eventListener))
-val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOptions))
-```
-
-### How to register `onStartChildHandler`/`onStopChildHandler`
-
-The handler that registered by `withOnStartChildHandler`/`withOnStopChildHandler` is called by `BackOffSupervisor` when the child actor is started/stopped.
-
-
-```scala
-val childProps = Props(classOf[EchoActor])
-val stopBackOffOptions = Backoff.onStop(childProps, "c1", 100.millis, 3.seconds, 0.2)
-    .withOnStartChildHandler { case (supervisorRef, exOpt) =>
-        system.log.info(s"on start child: $supervisorRef, $exOpt")
-        exOpt.foreach(supervisorRef ! _) // retry to send a message
-}.withOnStopChildHandler { supervisorRef => 
-  system.log.info(s"on stop child: $supervisorRef")
-}
 val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOptions))
 ```
 
