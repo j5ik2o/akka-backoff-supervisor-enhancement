@@ -9,12 +9,14 @@ scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq("2.11.8", "2.12.1")
 
+val akkaVersion = "2.4.17"
+
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.4.11" % "provided",
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.11" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "com.typesafe.akka" %% "akka-slf4j" % "2.4.17" % "test",
-  "ch.qos.logback" % "logback-classic" % "1.2.1" % "test"
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion % "provided",
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
+  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion % "test",
+  "ch.qos.logback" % "logback-classic" % "1.2.1" % "test",
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 )
 
 scalacOptions ++= Seq(
