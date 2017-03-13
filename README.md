@@ -26,6 +26,9 @@ libraryDependencies += "com.github.j5ik2o" %% "akka-backoff-supervisor-enhanceme
 
 ## Usage
 
+You can use the following enhancement methods, and standard methods provided by akka.
+These methods provide functions to handle start and stop events of child actors under BackOffSupervisor.
+
 ### How to register `onStartChildHandler`/`onStopChildHandler`
 
 The handler that registered by `withOnStartChildHandler`/`withOnStopChildHandler` is called by `BackOffSupervisor` when the child actor is started/stopped.
