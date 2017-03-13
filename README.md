@@ -6,7 +6,7 @@ Please give me your opinion.
 
 ## Installation
 
-Add the following to your sbt build (only Scala 2.11.x):
+Add the following to your sbt build (Scala 2.11.x, 2.12.x):
 
 ### Release Version
 
