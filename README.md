@@ -4,6 +4,25 @@ This product is enhancement library to BackOffSupervisor of Akka.
 I'm going to propose this enhancement method to akka team after this experiment.
 Please give me your opinion.
 
+## Installation
+
+Add the following to your sbt build (only Scala 2.11.x):
+
+### Release Version
+
+```scala
+resolvers += "Sonatype OSS Release Repository" at "https://oss.sonatype.org/content/repositories/releases/"
+
+libraryDependencies += "com.github.j5ik2o" %% "akka-backoff-supervisor-enhancement" % "1.0.0"
+```
+
+### Snapshot Version
+
+```scala
+resolvers += "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots/"
+
+libraryDependencies += "com.github.j5ik2o" %% "akka-backoff-supervisor-enhancement" % "1.0.1-SNAPSHOT"
+```
 
 ## Usage
 
