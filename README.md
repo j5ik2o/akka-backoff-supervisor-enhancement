@@ -74,7 +74,7 @@ val stopBackOffSupervisor = system.actorOf(BackoffSupervisor.props(stopBackOffOp
 
 ### How to make Custom BackOffSupervisor implementation
 
-The Custom BackOffSupervisor is supported by `BackoffOnRestartSupervisor` or `BackoffSupervisor` if you want to use the `Actor`. This BackOffSupervisor retry to send the message by self.
+The Custom BackOffSupervisor is supported by `BackoffOnRestartSupervisor` or `BackoffSupervisor` if you want to use the `Actor`. This BackOffSupervisor retries to send the message by self.
 
 ```scala
 object CustomBackOffSupervisor {
