@@ -5,11 +5,11 @@ organization := "com.github.j5ik2o"
 
 name := """akka-backoff-supervisor-enhancement"""
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.11"
 
-crossScalaVersions := Seq("2.11.8", "2.12.1")
+crossScalaVersions := Seq("2.11.11", "2.12.6")
 
-val akkaVersion = "2.4.17"
+val akkaVersion = "2.5.11"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion % "provided",

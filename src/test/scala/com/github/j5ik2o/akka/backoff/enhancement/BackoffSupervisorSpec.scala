@@ -1,8 +1,8 @@
 package com.github.j5ik2o.akka.backoff.enhancement
 
-import akka.actor.{SupervisorStrategy, _}
+import akka.actor.{ SupervisorStrategy, _ }
 import akka.testkit._
-import com.github.j5ik2o.akka.backoff.enhancement.BackoffSupervisor.{ChildStarted, ChildStopped, RestartCount}
+import com.github.j5ik2o.akka.backoff.enhancement.BackoffSupervisor.{ ChildStarted, ChildStopped, RestartCount }
 import org.scalatest.FunSpecLike
 
 import scala.concurrent.duration._
@@ -64,7 +64,7 @@ object BackoffSupervisorSpec {
 }
 
 class BackoffSupervisorSpec
-  extends TestKit(ActorSystem("BackoffSupervisorSpec"))
+    extends TestKit(ActorSystem("BackoffSupervisorSpec"))
     with FunSpecLike with ImplicitSender {
 
   import BackoffSupervisorSpec._
@@ -74,16 +74,16 @@ class BackoffSupervisorSpec
   def onStopOptions(props: Props = Child.props(testActor)): BackoffOptions =
     Backoff.onStop(props, "c1", 100.millis, 3.seconds, 0.2)
       .withEventSubscriber(Some(eventListener))
-//      .withOnStartChildHandler { case (actorRef, exOpt) =>
-//        system.log.info(s"on start child: $actorRef, $exOpt")
-//      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
+  //      .withOnStartChildHandler { case (actorRef, exOpt) =>
+  //        system.log.info(s"on start child: $actorRef, $exOpt")
+  //      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
 
   def onFailureOptions(props: Props = Child.props(testActor)): BackoffOptions =
     Backoff.onFailure(props, "c1", 100.millis, 3.seconds, 0.2)
       .withEventSubscriber(Some(eventListener))
-//      .withOnStartChildHandler { case (actorRef, exOpt) =>
-//        system.log.info(s"on start child: $actorRef, $exOpt")
-//      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
+  //      .withOnStartChildHandler { case (actorRef, exOpt) =>
+  //        system.log.info(s"on start child: $actorRef, $exOpt")
+  //      }.withOnStopChildHandler { actorRef => system.log.info(s"on stop child: $actorRef") }
 
   def create(options: BackoffOptions): ActorRef = system.actorOf(BackoffSupervisor.props(options))
 
