@@ -1,7 +1,7 @@
 package com.github.j5ik2o.akka.backoff.enhancement
 
-import akka.actor.SupervisorStrategy.{Escalate, Stop}
-import akka.actor.{Actor, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.SupervisorStrategy.{ Escalate, Stop }
+import akka.actor.{ Actor, OneForOneStrategy, Props, SupervisorStrategy }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -24,7 +24,7 @@ class ChildActor extends Actor {
 }
 
 class Supervisor(backoffOptions: BackoffOptions)
-  extends BackoffOnRestartSupervisor {
+    extends BackoffOnRestartSupervisor {
 
   override val minBackoff: FiniteDuration = backoffOptions.minBackoff
   override val maxBackoff: FiniteDuration = backoffOptions.maxBackoff
@@ -46,8 +46,9 @@ class Supervisor(backoffOptions: BackoffOptions)
   }
 
   override def onStartChild(exOpt: Option[Throwable]): Unit = {
-    exOpt.foreach { case ChildException(msg) =>
-      child.get ! msg
+    exOpt.foreach {
+      case ChildException(msg) =>
+        child.get ! msg
     }
   }
 
