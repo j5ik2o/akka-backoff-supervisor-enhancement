@@ -16,7 +16,8 @@ class BackoffOnRestartSupervisorImpl(
   val eventSubscriber: Option[ActorRef],
   val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit,
   val onStopChildHandler: ActorRef => Unit,
-  val strategy: OneForOneStrategy
+  val strategy: OneForOneStrategy,
+  val replyWhileStopped: Option[Any]
 )
     extends BackoffOnRestartSupervisor {
 

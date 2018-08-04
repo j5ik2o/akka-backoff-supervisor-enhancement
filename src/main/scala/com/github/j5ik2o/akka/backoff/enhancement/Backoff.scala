@@ -80,7 +80,8 @@ object Backoff {
       childName,
       minBackoff,
       maxBackoff,
-      randomFactor
+      randomFactor,
+      replyWhileStopped = None
     )
 
   /**
@@ -149,7 +150,8 @@ object Backoff {
       childName,
       minBackoff,
       maxBackoff,
-      randomFactor
+      randomFactor,
+      replyWhileStopped = None
     )
 }
 
@@ -174,7 +176,7 @@ trait BackoffOptions {
   val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit
   val onStopChildHandler: ActorRef => Unit
   val supervisorStrategy: OneForOneStrategy
-
+  val replyWhileStopped: Option[Any]
   /**
    * Returns a new BackoffOptions with automatic back-off reset.
    * The back-off algorithm is reset if the child does not crash within the specified `resetBackoff`.
@@ -210,6 +212,8 @@ trait BackoffOptions {
 
   def withOnStopChildHandler(onStopChildHandler: ActorRef => Unit): BackoffOptions
 
+  def withReplyWhileStopped(value: Option[Any]): BackoffOptions
+
   /**
    * Returns the props to create the back-off supervisor.
    */
@@ -226,7 +230,8 @@ object BackoffOptions {
     maxBackoff: FiniteDuration,
     randomFactor: Double,
     reset: Option[BackoffReset] = None,
-    supervisorStrategy: OneForOneStrategy
+    supervisorStrategy: OneForOneStrategy,
+    replyWhileStopped: Option[Any]
   ): BackoffOptions = {
     BackoffOptionsImpl(
       backoffType: BackoffType,
@@ -239,7 +244,8 @@ object BackoffOptions {
       None,
       (_, _) => (),
       _ => (),
-      supervisorStrategy
+      supervisorStrategy,
+      replyWhileStopped
     )
   }
 
@@ -256,7 +262,8 @@ private final case class BackoffOptionsImpl(
     eventSubscriber: Option[ActorRef] = None,
     onStartChildHandler: (ActorRef, Option[Throwable]) => Unit = (_, _) => (),
     onStopChildHandler: ActorRef => Unit = _ => (),
-    supervisorStrategy: OneForOneStrategy = OneForOneStrategy()(SupervisorStrategy.defaultStrategy.decider)
+    supervisorStrategy: OneForOneStrategy = OneForOneStrategy()(SupervisorStrategy.defaultStrategy.decider),
+    replyWhileStopped: Option[Any]
 ) extends BackoffOptions {
 
   val backoffReset: BackoffReset = reset.getOrElse(AutoReset(minBackoff))
@@ -278,6 +285,8 @@ private final case class BackoffOptionsImpl(
   override def withOnStopChildHandler(onStopChildHandler: ActorRef => Unit): BackoffOptions =
     copy(onStopChildHandler = onStopChildHandler)
 
+  override def withReplyWhileStopped(value: Option[Any]): BackoffOptions = copy(replyWhileStopped = value)
+
   override def props: Props = {
     require(minBackoff > Duration.Zero, "minBackoff must be > 0")
     require(maxBackoff >= minBackoff, "maxBackoff must be >= minBackoff")
@@ -291,10 +300,10 @@ private final case class BackoffOptionsImpl(
     backoffType match {
       case RestartImpliesFailure ⇒
         Props(new BackoffOnRestartSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor,
-          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy))
+          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy, replyWhileStopped))
       case StopImpliesFailure ⇒
         Props(new BackoffSupervisorImpl(childProps, childName, minBackoff, maxBackoff, backoffReset, randomFactor,
-          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy))
+          eventSubscriber, onStartChildHandler, onStopChildHandler, supervisorStrategy, replyWhileStopped))
       case CustomImpliesFailure =>
         throw new IllegalArgumentException("The backoffType is a wrong parameter")
     }

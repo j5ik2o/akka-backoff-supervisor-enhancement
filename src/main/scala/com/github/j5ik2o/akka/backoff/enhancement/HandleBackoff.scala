@@ -13,6 +13,8 @@ trait HandleBackoff extends ActorLogging {
 
   def reset: BackoffReset
 
+  def replyWhileStopped: Option[Any]
+
   var child: Option[ActorRef] = None
 
   var restartCount = 0
@@ -66,7 +68,10 @@ trait HandleBackoff extends ActorLogging {
   def forward: Receive = {
     case msg ⇒ child match {
       case Some(c) ⇒ c.forward(msg)
-      case None ⇒ context.system.deadLetters.forward(msg)
+      case None ⇒ replyWhileStopped match {
+        case Some(r) ⇒ sender ! r
+        case None    ⇒ context.system.deadLetters.forward(msg)
+      }
     }
   }
 
