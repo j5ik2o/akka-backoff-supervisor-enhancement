@@ -169,7 +169,8 @@ class BackoffSupervisorImpl(
     val eventSubscriber: Option[ActorRef],
     val onStartChildHandler: (ActorRef, Option[Throwable]) => Unit,
     val onStopChildHandler: ActorRef => Unit,
-    strategy: SupervisorStrategy
+    strategy: SupervisorStrategy,
+    val replyWhileStopped: Option[Any]
 ) extends BackoffSupervisor {
 
   // for binary compatibility with 2.4.1
@@ -182,7 +183,7 @@ class BackoffSupervisorImpl(
     supervisorStrategy: SupervisorStrategy
   ) =
     this(childProps, childName, minBackoff, maxBackoff, AutoReset(minBackoff), randomFactor,
-      None, (_, _) => (), _ => (), supervisorStrategy)
+      None, (_, _) => (), _ => (), supervisorStrategy, None)
 
   // for binary compatibility with 2.4.0
   def this(

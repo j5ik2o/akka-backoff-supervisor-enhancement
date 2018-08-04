@@ -30,6 +30,7 @@ class Supervisor(backoffOptions: BackoffOptions)
   override val maxBackoff: FiniteDuration = backoffOptions.maxBackoff
   override val randomFactor: Double = backoffOptions.randomFactor
   override val reset: BackoffReset = backoffOptions.reset.getOrElse(AutoReset(minBackoff))
+  override val replyWhileStopped: Option[Any] = backoffOptions.replyWhileStopped
 
   override def childProps: Props = ChildActor.props
   override def childName: String = "child"
