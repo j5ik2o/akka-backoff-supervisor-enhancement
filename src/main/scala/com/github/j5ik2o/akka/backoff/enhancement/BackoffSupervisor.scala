@@ -150,7 +150,7 @@ object BackoffSupervisor {
     randomFactor: Double
   ): FiniteDuration = {
     val rnd                = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor
-    val calculatedDuration = Try(maxBackoff.min(minBackoff * math.pow(2, restartCount)) * rnd).getOrElse(maxBackoff)
+    val calculatedDuration = Try(maxBackoff.min(minBackoff * math.pow(2, restartCount.toDouble)) * rnd).getOrElse(maxBackoff)
     calculatedDuration match {
       case f: FiniteDuration ⇒ f
       case _                 ⇒ maxBackoff
